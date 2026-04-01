@@ -1,0 +1,86 @@
+.control-panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.9rem;
+  padding: 1rem 1.5rem 1.2rem;
+  border-top: 1px solid var(--color-border);
+}
+
+/* ─── Base button ─── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.18s ease,
+    background 0.18s ease;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none;
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn:not(:disabled):active {
+  transform: scale(0.94);
+}
+
+.btn:focus-visible {
+  outline: 3px solid var(--color-warning);
+  outline-offset: 3px;
+}
+
+/* ─── Size ─── */
+.btn-large {
+  min-width: 150px;
+  min-height: 60px;
+  padding: 0 1.6rem;
+  font-size: 1.15rem;
+  border-radius: var(--radius-lg);
+  gap: 0.4rem;
+}
+
+/* ─── Primary (시작) ─── */
+.btn-primary {
+  background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+  color: #fff;
+  box-shadow: 0 4px 20px var(--color-primary-glow);
+}
+.btn-primary:not(:disabled):hover {
+  background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%);
+  box-shadow: 0 6px 28px rgba(59,130,246,0.6);
+}
+
+/* ─── Danger (중지) ─── */
+.btn-danger {
+  background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+  color: #fff;
+  min-width: 100px;
+  box-shadow: 0 4px 18px var(--color-danger-glow);
+}
+.btn-danger:not(:disabled):hover {
+  background: linear-gradient(135deg, #b91c1c 0%, #dc2626 100%);
+}
+
+/* ─── Ghost (음성 반복) ─── */
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--color-text);
+  border: 1.5px solid rgba(255, 255, 255, 0.18);
+  min-width: 120px;
+}
+.btn-secondary:not(:disabled):hover {
+  background: rgba(255, 255, 255, 0.13);
+  border-color: rgba(255,255,255,0.3);
+}

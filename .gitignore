@@ -1,0 +1,26 @@
+# Python 가상환경
+.venv/
+
+# Node
+navigator-app/node_modules/
+
+# 빌드 결과물
+navigator-app/build/
+
+# ONNX 모델 파일 (용량 큼 — Git LFS 또는 별도 배포)
+navigator-app/public/models/*.onnx
+
+# PyTorch 가중치
+*.pt
+
+# 환경변수
+.env
+.env.local
+.env.*.local
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/

@@ -1,0 +1,106 @@
+.status-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem 1.2rem;
+  min-height: 56px;
+  transition: background var(--transition-base);
+  position: relative;
+  overflow: hidden;
+}
+
+/* 상태별 subtle 배경 강조선 (왼쪽 보더) */
+.status-bar::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 12px; bottom: 12px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  transition: background var(--transition-base);
+}
+
+.status-idle       { background: rgba(255,255,255,0.02); }
+.status-idle::before { background: #475569; }
+
+.status-requesting { background: rgba(59,130,246,0.06); }
+.status-requesting::before { background: var(--color-primary); }
+
+.status-active     { background: rgba(34,197,94,0.06); }
+.status-active::before { background: var(--color-success); }
+
+.status-error      { background: rgba(239,68,68,0.08); }
+.status-error::before { background: var(--color-danger); }
+
+/* ─── 상태 표시 영역 (왼쪽 고정) ─── */
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.status-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.status-idle .status-dot       { background: #475569; }
+.status-requesting .status-dot { background: var(--color-primary); animation: pulse-blue 1.2s ease-in-out infinite; }
+.status-active .status-dot     { background: var(--color-success); animation: pulse-green 1.8s ease-in-out infinite; }
+.status-error .status-dot      { background: var(--color-danger); }
+
+@keyframes pulse-green {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(34,197,94,0.7); }
+  50%       { box-shadow: 0 0 0 6px rgba(34,197,94,0); }
+}
+
+@keyframes pulse-blue {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(59,130,246,0.7); }
+  50%       { box-shadow: 0 0 0 6px rgba(59,130,246,0); }
+}
+
+.status-label {
+  color: var(--color-text);
+  font-size: 0.88rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* ─── 안내 텍스트 (중앙, 늘어남) ─── */
+.status-announcement {
+  flex: 1;
+  color: #fef08a;
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.4;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  animation: fadeSlideIn 0.3s ease;
+}
+
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── 모델 배지 (오른쪽) ─── */
+.status-badge {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: #0f172a;
+  background: #f59e0b;
+  border-radius: 100px;
+  padding: 3px 10px;
+  white-space: nowrap;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
