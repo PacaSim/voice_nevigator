@@ -14,7 +14,7 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "copy-ort-wasm": "cp node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded*.wasm public/ && cp node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded*.mjs public/",
+    "copy-ort-wasm": "cp node_modules/onnxruntime-web/dist/ort-wasm*.wasm public/ && cp node_modules/onnxruntime-web/dist/ort-wasm*.mjs public/",
     "postinstall": "npm run copy-ort-wasm",
     "start": "react-scripts start",
     "build": "react-scripts build",

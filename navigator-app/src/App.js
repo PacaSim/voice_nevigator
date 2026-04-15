@@ -7,6 +7,8 @@ import DetectionOverlay from './components/DetectionOverlay';
 import { useCamera } from './hooks/useCamera';
 import { useVoice } from './hooks/useVoice';
 import { useDetection } from './hooks/useDetection';
+import { formatThreat } from './utils/detectionInfo';
+import { useVibration } from './hooks/useVibration';
 
 const CAMERA_ANNOUNCEMENTS = {
   idle:       '',
@@ -22,15 +24,19 @@ function buildDangerAnnouncement(detections) {
   const inROI = detections.filter((d) => d.inROI);
   if (inROI.length === 0) return null;
 
-  // 클래스별 카운트
-  const counts = {};
-  for (const d of inROI) {
-    counts[d.label] = (counts[d.label] ?? 0) + 1;
+  // 가까운 순으로 정렬 후 최대 3개만 안내 (메시지가 너무 길어지지 않도록)
+  const sorted = [...inROI].sort((a, b) => (a.distanceOrder ?? 2) - (b.distanceOrder ?? 2));
+  const top = sorted.slice(0, 3);
+
+  // 동일한 (방향+거리+라벨) 중복 제거
+  const seen = new Set();
+  const parts = [];
+  for (const d of top) {
+    const phrase = formatThreat(d.direction ?? '정면', d.distance ?? '멀리', d.label);
+    if (!seen.has(phrase)) { seen.add(phrase); parts.push(phrase); }
   }
-  const parts = Object.entries(counts).map(([label, n]) =>
-    n > 1 ? `${label} ${n}명` : label
-  );
-  return `주의! 보행 경로에 ${parts.join(', ')} 있습니다.`;
+
+  return `주의! ${parts.join(', ')}`;
 }
 
 function App() {
@@ -40,6 +46,8 @@ function App() {
     videoRef,
     isActive: status === 'active',
   });
+
+  const { vibrateForThreat, cancel: cancelVibration } = useVibration(2000);
 
   const [announcement, setAnnouncement] = useState('');
   const lastVoiceRef = useRef(0); // 마지막 위험 음성 안내 timestamp
@@ -64,18 +72,25 @@ function App() {
     }
   }, [modelStatus, speak]);
 
-  // ROI 내 위험 탐지 → 음성 경고 (쿨다운 적용)
+  // ROI 내 위험 탐지 → 음성 경고 + 진동 (쿨다운 적용)
   useEffect(() => {
+    const inROI = detections.filter((d) => d.inROI);
     const msg = buildDangerAnnouncement(detections);
     if (!msg) return;
+
+    // 진동: 쿨다운과 무관하게 매 감지마다 — 자체 쿨다운(2s)은 훅에서 관리
+    const closestOrder = Math.min(...inROI.map((d) => d.distanceOrder ?? 2));
+    vibrateForThreat(closestOrder);
+
+    // 음성: 4s 쿨다운
     const now = Date.now();
     if (now - lastVoiceRef.current < VOICE_COOLDOWN_MS) return;
     lastVoiceRef.current = now;
     setAnnouncement(msg);
     speak(msg, { rate: 1.1 });
-  }, [detections, speak]);
+  }, [detections, speak, vibrateForThreat]);
 
-  const handleStop = () => { stopCamera(); stopSpeech(); };
+  const handleStop = () => { stopCamera(); stopSpeech(); cancelVibration(); };
 
   const handleRepeatSpeak = () => {
     const inROI = detections.filter((d) => d.inROI);

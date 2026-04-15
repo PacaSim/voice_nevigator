@@ -23,10 +23,12 @@ export function useDetection({ videoRef, isActive }) {
       .then((session) => {
         if (cancelled) return;
         sessionRef.current = session;
+        console.info('[Detection] 모델 로드 성공, 입력 이름:', session.inputNames, '출력 이름:', session.outputNames);
         setModelStatus('ready');
       })
       .catch((err) => {
         if (cancelled) return;
+        console.error('[Detection] 모델 로드 실패:', err);
         setModelError(err.message ?? String(err));
         setModelStatus('error');
       });
@@ -48,7 +50,7 @@ export function useDetection({ videoRef, isActive }) {
         const dets = await detectFrame(videoRef.current, sessionRef.current);
         setDetections(dets);
       } catch (e) {
-        // 추론 중 에러는 무시하고 다음 프레임 시도
+        console.error('[Detection] 추론 에러:', e);
       } finally {
         runningRef.current = false;
       }

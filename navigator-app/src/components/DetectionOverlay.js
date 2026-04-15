@@ -4,9 +4,9 @@ import './DetectionOverlay.css';
 
 // 클래스별 색상 (ROI 외부) — App.css 디자인 토큰과 통일
 const CLASS_COLORS = {
-  0: '#fde047', // 사람 → 노랑
-  1: '#38bdf8', // 자전거 → 하늘
-  3: '#fb923c', // 오토바이/킥보드 → 주황
+  0: '#38bdf8', // 자전거 → 하늘
+  1: '#fb923c', // 전동 킥보드 → 주황
+  2: '#a78bfa', // 볼라드 → 보라
 };
 const ROI_ALERT_COLOR = '#f87171'; // ROI 내 위험 → 빨강 (softer)
 
@@ -114,10 +114,10 @@ export default function DetectionOverlay({ detections }) {
         ctx.fillRect(bx, by, bw, bh);
       }
 
-      // 라벨
+      // 라벨 — ROI 내부는 방향/거리 표시, 외부는 클래스+신뢰도
       const pct = Math.round(det.score * 100);
       const tag = det.inROI
-        ? `⚠ ${det.label} ${pct}%`
+        ? `⚠ ${det.direction} ${det.distance} ${det.label}`
         : `${det.label} ${pct}%`;
       drawLabel(ctx, tag, bx, by, color);
     }
