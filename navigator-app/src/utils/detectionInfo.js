@@ -6,10 +6,14 @@
  *   0.36 ~ 0.64 → 정면
  *   0.64 ~ 1.0  → 오른쪽
  *
- * 거리: bbox 높이(비율) 기준 (bbox가 클수록 가까움)
- *   > 0.45 → 바로 앞
- *   > 0.25 → 가까이
- *   otherwise → 멀리
+ * 거리 (개선): bbox 높이(bh)와 bbox 하단 y위치(y2)를 함께 사용
+ *   - bh만 쓰면 화면 상단의 큰 물체(실제로 멀 수 있음)를 가깝게 오판 가능
+ *   - y2가 낮을수록(화면 아래) + bh가 클수록 더 가까운 물체
+ *
+ *   proximityScore = bh * 0.55 + y2 * 0.45
+ *     > 0.65 → 바로 앞  (~2m 이내)
+ *     > 0.42 → 가까이   (~2~5m)
+ *     otherwise → 멀리  (5m+)
  */
 
 /** @param {number[]} bbox [x1, y1, x2, y2] normalized */
@@ -20,11 +24,21 @@ export function getDirection(bbox) {
   return '정면';
 }
 
+/**
+ * bbox 높이와 하단 y위치를 결합한 거리 추정.
+ * @param {number[]} bbox [x1, y1, x2, y2] normalized
+ */
+export function getProximityScore(bbox) {
+  const bh = bbox[3] - bbox[1]; // bbox 높이
+  const y2 = bbox[3];           // bbox 하단 y
+  return bh * 0.55 + y2 * 0.45;
+}
+
 /** @param {number[]} bbox [x1, y1, x2, y2] normalized */
 export function getDistance(bbox) {
-  const bh = bbox[3] - bbox[1];
-  if (bh > 0.45) return '바로 앞';
-  if (bh > 0.25) return '가까이';
+  const score = getProximityScore(bbox);
+  if (score > 0.65) return '바로 앞';
+  if (score > 0.42) return '가까이';
   return '멀리';
 }
 
@@ -33,9 +47,9 @@ export function getDistance(bbox) {
  * @param {number[]} bbox
  */
 export function getDistanceOrder(bbox) {
-  const bh = bbox[3] - bbox[1];
-  if (bh > 0.45) return 0;
-  if (bh > 0.25) return 1;
+  const score = getProximityScore(bbox);
+  if (score > 0.65) return 0;
+  if (score > 0.42) return 1;
   return 2;
 }
 
@@ -49,7 +63,6 @@ export function getDistanceOrder(bbox) {
  */
 export function formatThreat(direction, distance, label) {
   if (distance === '멀리') {
-    // 거리가 멀면 방향만
     return direction === '정면'
       ? `정면에 ${label}`
       : `${direction}에 ${label}`;
@@ -58,3 +71,4 @@ export function formatThreat(direction, distance, label) {
     ? `${distance}에 ${label}`
     : `${direction} ${distance}에 ${label}`;
 }
+

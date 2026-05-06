@@ -67,6 +67,7 @@ function preprocessFrame(videoEl) {
   ctx.fillRect(0, 0, INPUT_SIZE, INPUT_SIZE);
   ctx.drawImage(videoEl, padX, padY, nw, nh);
 
+  
   const { data } = ctx.getImageData(0, 0, INPUT_SIZE, INPUT_SIZE); // RGBA
   const N = INPUT_SIZE * INPUT_SIZE;
   const float32 = new Float32Array(3 * N);

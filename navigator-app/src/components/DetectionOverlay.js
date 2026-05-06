@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useCallback } from 'react';
-import { getRoiRect } from '../utils/roiConfig';
+import { getTrapezoidPoints, getTrapezoidBoundsAtY, ZONE_Y } from '../utils/roiConfig';
 import './DetectionOverlay.css';
 
 // 클래스별 색상 (ROI 외부) — App.css 디자인 토큰과 통일
@@ -34,8 +34,103 @@ function drawLabel(ctx, text, x, y, color) {
   ctx.fillText(text, x + padX, y - padY / 2);
 }
 
-export default function DetectionOverlay({ detections }) {
-  const canvasRef   = useRef(null);
+/**
+ * 사다리꼴 ROI를 캔버스에 그립니다.
+ * 거리 구간(바로 앞 / 가까이 / 멀리)을 가이드선으로 표시합니다.
+ */
+function drawTrapezoidROI(ctx, W, H) {
+  const pts = getTrapezoidPoints();
+
+  // 꼭짓점을 픽셀 좌표로 변환
+  const px = (nx) => nx * W;
+  const py = (ny) => ny * H;
+
+  // ── 사다리꼴 경로 ────────────────────────────────────────────────────────
+  ctx.beginPath();
+  ctx.moveTo(px(pts.topLeft.x),     py(pts.topLeft.y));
+  ctx.lineTo(px(pts.topRight.x),    py(pts.topRight.y));
+  ctx.lineTo(px(pts.bottomRight.x), py(pts.bottomRight.y));
+  ctx.lineTo(px(pts.bottomLeft.x),  py(pts.bottomLeft.y));
+  ctx.closePath();
+
+  // 배경 채우기
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.04)';
+  ctx.fill();
+
+  // 테두리 — 점선
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.55)';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([8, 5]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // ── 거리 구간 가이드선 ────────────────────────────────────────────────────
+  const zones = [
+    { y: ZONE_Y.near, label: '바로 앞', color: 'rgba(248,113,113,0.7)' },  // 빨강
+    { y: ZONE_Y.mid,  label: '가까이',  color: 'rgba(251,191,36,0.7)' },   // 노랑
+  ];
+
+  for (const zone of zones) {
+    const { xLeft, xRight } = getTrapezoidBoundsAtY(zone.y);
+    const lx = px(xLeft);
+    const rx = px(xRight);
+    const zy = py(zone.y);
+
+    ctx.beginPath();
+    ctx.moveTo(lx, zy);
+    ctx.lineTo(rx, zy);
+    ctx.strokeStyle = zone.color;
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([5, 4]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // 구간 라벨
+    ctx.font = '11px sans-serif';
+    ctx.fillStyle = zone.color;
+    ctx.textBaseline = 'bottom';
+    ctx.fillText(zone.label, lx + 4, zy - 2);
+  }
+
+  // ROI 라벨
+  ctx.font = '12px sans-serif';
+  ctx.fillStyle = 'rgba(255,255,255,0.7)';
+  ctx.textBaseline = 'top';
+  ctx.fillText('보행 경로 (ROI)', px(pts.topLeft.x) + 6, py(pts.topLeft.y) + 4);
+}
+
+const SIGNAL_STYLE = {
+  red:     { bg: 'rgba(239,68,68,0.90)',   text: '🔴 빨간불 — 멈추세요' },
+  green:   { bg: 'rgba(34,197,94,0.90)',   text: '🟢 초록불 — 건너세요' },
+  unknown: null,
+};
+
+/** 신호등 상태 배지를 우상단에 그립니다 */
+function drawTrafficLightBadge(ctx, W, trafficLight) {
+  if (!trafficLight || trafficLight.state === 'unknown') return;
+  const style = SIGNAL_STYLE[trafficLight.state];
+  if (!style) return;
+
+  ctx.font = 'bold 16px sans-serif';
+  const metrics = ctx.measureText(style.text);
+  const padX = 12;
+  const bw = metrics.width + padX * 2;
+  const bh = 28;
+  const bx = W - bw - 12;
+  const by = 12;
+
+  ctx.fillStyle = style.bg;
+  ctx.beginPath();
+  ctx.roundRect(bx, by, bw, bh, 6);
+  ctx.fill();
+
+  ctx.fillStyle = '#ffffff';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(style.text, bx + padX, by + bh / 2);
+}
+
+export default function DetectionOverlay({ detections, trafficLight }) {
+  const canvasRef    = useRef(null);
   const containerRef = useRef(null);
 
   // 캔버스 크기를 컨테이너에 맞게 조정
@@ -70,31 +165,13 @@ export default function DetectionOverlay({ detections }) {
     const H = canvas.height;
     ctx.clearRect(0, 0, W, H);
 
-    // ── ROI 사각형 ─────────────────────────────────────────────────────
-    const roi = getRoiRect();
-    const rx = roi.x1 * W;
-    const ry = roi.y1 * H;
-    const rw = (roi.x2 - roi.x1) * W;
-    const rh = (roi.y2 - roi.y1) * H;
+    // ── 신호등 배지 ────────────────────────────────────────────────────────────
+    drawTrafficLightBadge(ctx, W, trafficLight);
 
-    // ROI 배경 (연한 하이라이트)
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.04)';
-    ctx.fillRect(rx, ry, rw, rh);
+    // ── 사다리꼴 ROI + 거리 구간선 ──────────────────────────────────────────
+    drawTrapezoidROI(ctx, W, H);
 
-    // ROI 테두리 — 점선
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.55)';
-    ctx.lineWidth = 2;
-    ctx.setLineDash([8, 5]);
-    ctx.strokeRect(rx, ry, rw, rh);
-    ctx.setLineDash([]);
-
-    // ROI 라벨
-    ctx.font = '12px sans-serif';
-    ctx.fillStyle = 'rgba(255,255,255,0.7)';
-    ctx.textBaseline = 'top';
-    ctx.fillText('보행 경로 (ROI)', rx + 6, ry + 4);
-
-    // ── 탐지 결과 박스 ─────────────────────────────────────────────────
+    // ── 탐지 결과 박스 ────────────────────────────────────────────────────────
     for (const det of detections) {
       const [x1n, y1n, x2n, y2n] = det.bbox;
       const bx = x1n * W;
@@ -121,7 +198,7 @@ export default function DetectionOverlay({ detections }) {
         : `${det.label} ${pct}%`;
       drawLabel(ctx, tag, bx, by, color);
     }
-  }, [detections, resizeCanvas]);
+  }, [detections, trafficLight, resizeCanvas]);
 
   return (
     <div ref={containerRef} className="detection-overlay-container" aria-hidden="true">

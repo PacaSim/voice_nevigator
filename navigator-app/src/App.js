@@ -5,10 +5,11 @@ import StatusBar from './components/StatusBar';
 import ControlPanel from './components/ControlPanel';
 import DetectionOverlay from './components/DetectionOverlay';
 import { useCamera } from './hooks/useCamera';
-import { useVoice } from './hooks/useVoice';
+import { useVoice, VOICE_PRIORITY } from './hooks/useVoice';
 import { useDetection } from './hooks/useDetection';
 import { formatThreat } from './utils/detectionInfo';
 import { useVibration } from './hooks/useVibration';
+import { useTrafficLight } from './hooks/useTrafficLight';
 
 const CAMERA_ANNOUNCEMENTS = {
   idle:       '',
@@ -48,6 +49,11 @@ function App() {
   });
 
   const { vibrateForThreat, cancel: cancelVibration } = useVibration(2000);
+  const { trafficLight } = useTrafficLight({
+    videoRef,
+    isActive: status === 'active',
+    speak,
+  });
 
   const [announcement, setAnnouncement] = useState('');
   const lastVoiceRef = useRef(0); // 마지막 위험 음성 안내 timestamp
@@ -55,7 +61,7 @@ function App() {
   // 카메라 상태 변화 → 음성 안내
   useEffect(() => {
     const msg = CAMERA_ANNOUNCEMENTS[status];
-    if (msg) { setAnnouncement(msg); speak(msg); }
+    if (msg) { setAnnouncement(msg); speak(msg, VOICE_PRIORITY.TRAFFIC); }
     else setAnnouncement('');
   }, [status, speak]);
 
@@ -64,11 +70,11 @@ function App() {
     if (modelStatus === 'ready') {
       const msg = '객체 탐지 모델이 준비되었습니다.';
       setAnnouncement(msg);
-      speak(msg);
+      speak(msg, VOICE_PRIORITY.TRAFFIC);
     } else if (modelStatus === 'error') {
       const msg = '객체 탐지 모델을 불러오지 못했습니다.';
       setAnnouncement(msg);
-      speak(msg);
+      speak(msg, VOICE_PRIORITY.TRAFFIC);
     }
   }, [modelStatus, speak]);
 
@@ -87,7 +93,7 @@ function App() {
     if (now - lastVoiceRef.current < VOICE_COOLDOWN_MS) return;
     lastVoiceRef.current = now;
     setAnnouncement(msg);
-    speak(msg, { rate: 1.1 });
+    speak(msg, VOICE_PRIORITY.OBSTACLE, { rate: 1.1 });
   }, [detections, speak, vibrateForThreat]);
 
   const handleStop = () => { stopCamera(); stopSpeech(); cancelVibration(); };
@@ -119,7 +125,7 @@ function App() {
           onStart={startCamera}
         />
         {status === 'active' && (
-          <DetectionOverlay detections={detections} />
+          <DetectionOverlay detections={detections} trafficLight={trafficLight} />
         )}
       </div>
 

@@ -16,7 +16,7 @@
   "scripts": {
     "copy-ort-wasm": "cp node_modules/onnxruntime-web/dist/ort-wasm*.wasm public/ && cp node_modules/onnxruntime-web/dist/ort-wasm*.mjs public/",
     "postinstall": "npm run copy-ort-wasm",
-    "start": "react-scripts start",
+    "start": "HOST=0.0.0.0 react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
