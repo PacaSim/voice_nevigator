@@ -2,11 +2,16 @@ import React, { useRef, useEffect, useCallback } from 'react';
 import { getTrapezoidPoints, getTrapezoidBoundsAtY, ZONE_Y } from '../utils/roiConfig';
 import './DetectionOverlay.css';
 
-// 클래스별 색상 (ROI 외부) — App.css 디자인 토큰과 통일
+// 클래스별 색상 (ROI 외부)
 const CLASS_COLORS = {
-  0: '#38bdf8', // 자전거 → 하늘
+  0: '#38bdf8', // 자전거      → 하늘
   1: '#fb923c', // 전동 킥보드 → 주황
-  2: '#a78bfa', // 볼라드 → 보라
+  2: '#a78bfa', // 볼라드      → 보라
+  3: '#facc15', // 자동차      → 노랑
+  4: '#f472b6', // 오토바이    → 핑크
+  5: '#4ade80', // 계단        → 초록
+  6: '#67e8f9', // 횡단보도    → 청록
+  7: '#e2e8f0', // 사람        → 밝은 회색
 };
 const ROI_ALERT_COLOR = '#f87171'; // ROI 내 위험 → 빨강 (softer)
 

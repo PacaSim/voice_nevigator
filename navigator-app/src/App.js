@@ -21,23 +21,35 @@ const CAMERA_ANNOUNCEMENTS = {
 /** 연속으로 같은 장애물을 반복 안내하지 않기 위한 쿨다운 (ms) */
 const VOICE_COOLDOWN_MS = 4000;
 
+// 계단·횡단보도는 위험 진동 없이 안내만
+const GUIDE_LABELS = new Set(['계단', '횡단보도']);
+
 function buildDangerAnnouncement(detections) {
   const inROI = detections.filter((d) => d.inROI);
   if (inROI.length === 0) return null;
 
-  // 가까운 순으로 정렬 후 최대 3개만 안내 (메시지가 너무 길어지지 않도록)
   const sorted = [...inROI].sort((a, b) => (a.distanceOrder ?? 2) - (b.distanceOrder ?? 2));
   const top = sorted.slice(0, 3);
 
-  // 동일한 (방향+거리+라벨) 중복 제거
   const seen = new Set();
-  const parts = [];
+  const dangerParts = [];
+  const guideParts  = [];
   for (const d of top) {
     const phrase = formatThreat(d.direction ?? '정면', d.distance ?? '멀리', d.label);
-    if (!seen.has(phrase)) { seen.add(phrase); parts.push(phrase); }
+    if (seen.has(phrase)) continue;
+    seen.add(phrase);
+    if (GUIDE_LABELS.has(d.label)) guideParts.push(phrase);
+    else dangerParts.push(phrase);
   }
 
-  return `주의! ${parts.join(', ')}`;
+  const parts = [];
+  if (dangerParts.length) parts.push(`주의! ${dangerParts.join(', ')}`);
+  if (guideParts.length)  parts.push(guideParts.join(', '));
+  return parts.length ? parts.join('. ') : null;
+}
+
+function hasDangerInROI(detections) {
+  return detections.some((d) => d.inROI && !GUIDE_LABELS.has(d.label));
 }
 
 function App() {
@@ -80,13 +92,15 @@ function App() {
 
   // ROI 내 위험 탐지 → 음성 경고 + 진동 (쿨다운 적용)
   useEffect(() => {
-    const inROI = detections.filter((d) => d.inROI);
     const msg = buildDangerAnnouncement(detections);
     if (!msg) return;
 
-    // 진동: 쿨다운과 무관하게 매 감지마다 — 자체 쿨다운(2s)은 훅에서 관리
-    const closestOrder = Math.min(...inROI.map((d) => d.distanceOrder ?? 2));
-    vibrateForThreat(closestOrder);
+    // 진동: danger 클래스(계단·횡단보도 제외)만 트리거
+    if (hasDangerInROI(detections)) {
+      const dangerInROI = detections.filter((d) => d.inROI && !GUIDE_LABELS.has(d.label));
+      const closestOrder = Math.min(...dangerInROI.map((d) => d.distanceOrder ?? 2));
+      vibrateForThreat(closestOrder);
+    }
 
     // 음성: 4s 쿨다운
     const now = Date.now();
